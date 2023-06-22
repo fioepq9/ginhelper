@@ -6,6 +6,12 @@ import (
 
 	"github.com/fioepq9/ginhelper"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/locales/zh"
+	ut "github.com/go-playground/universal-translator"
+	"github.com/go-playground/validator/v10"
+	zh_translations "github.com/go-playground/validator/v10/translations/zh"
+	"github.com/rotisserie/eris"
+	"go.uber.org/multierr"
 )
 
 // http localhost:8080/echo/1234 message==hello token:1234
@@ -26,15 +32,49 @@ type CreateResponse struct {
 	ID string `json:"id"`
 }
 
+type Validator struct {
+	validate *validator.Validate
+	trans    *ut.Translator
+}
+
+func NewValidator() *Validator {
+	zh := zh.New()
+	uni := ut.New(zh, zh)
+	trans, _ := uni.GetTranslator("zh")
+	validate := validator.New()
+	validate.SetTagName("binding")
+	zh_translations.RegisterDefaultTranslations(validate, trans)
+	return &Validator{
+		validate: validate,
+		trans:    &trans,
+	}
+}
+
+func (v *Validator) ValidateStruct(s any) error {
+	err := v.validate.Struct(s)
+	if err != nil {
+		var merr error
+		for _, err := range err.(validator.ValidationErrors) {
+			merr = multierr.Append(merr, eris.New(err.Translate(*v.trans)))
+		}
+		return merr
+	}
+	return nil
+}
+
+func (v *Validator) Engine() any {
+	return v.validate
+}
+
 func main() {
 	app := gin.Default()
 	ginhelper.H.WithBindingErrorHandler(func(c *gin.Context, err error) {
-		c.JSON(http.StatusOK, NewResponse(ResponseCodeBadRequest, err))
+		c.JSON(http.StatusOK, NewResponse(ResponseCodeBadRequest, err.Error()))
 	}).WithErrorHandler(func(c *gin.Context, err error) {
 		c.Error(err)
 	}).WithSuccessHandler(func(c *gin.Context, resp any) {
 		c.JSON(http.StatusOK, NewResponse(ResponseCodeSuccess, resp))
-	})
+	}).WithBindingValidator(NewValidator())
 
 	app.Use(func(c *gin.Context) {
 		c.Next()
