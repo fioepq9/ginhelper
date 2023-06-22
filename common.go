@@ -14,9 +14,9 @@ import (
 // handler's first return value must be a pointer
 // example:
 //   - func(c *gin.Context) error
-//   - func(c *gin.Context, req any) error
+//   - func(c *gin.Context, *req) error
 //   - func(c *gin.Context) (*resp, error)
-//   - func(c *gin.Context, req any) (*resp, error)
+//   - func(c *gin.Context, *req) (*resp, error)
 func checkHandler(handler any) {
 	v := reflect.ValueOf(handler)
 	t := v.Type()
