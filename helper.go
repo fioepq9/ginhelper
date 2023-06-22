@@ -8,7 +8,9 @@ import (
 	"github.com/gin-gonic/gin/binding"
 )
 
-type Helper struct {
+var H *helper
+
+type helper struct {
 	bindings            map[string]binding.Binding
 	bindingUri          binding.BindingUri
 	bindingValidator    binding.StructValidator
@@ -20,8 +22,8 @@ type Helper struct {
 // New returns a new Engine instance
 //
 //	Notes: binding.Validator will be set to nil
-func New(options ...func(*Helper)) *Helper {
-	e := &Helper{
+func init() {
+	h := &helper{
 		bindings: map[string]binding.Binding{
 			"json":   binding.JSON,
 			"form":   binding.Form,
@@ -47,58 +49,48 @@ func New(options ...func(*Helper)) *Helper {
 	// disable gin binding validator
 	binding.Validator = nil
 
-	for _, o := range options {
-		o(e)
-	}
-
-	return e
+	H = h
 }
 
-func WithBinding(tag string, binding binding.Binding) func(*Helper) {
-	return func(e *Helper) {
-		e.bindings[tag] = binding
-	}
+func (h *helper) WithBinding(tag string, binding binding.Binding) *helper {
+	H.bindings[tag] = binding
+	return H
 }
 
-func WithBindingUri(binding binding.BindingUri) func(*Helper) {
-	return func(e *Helper) {
-		e.bindingUri = binding
-	}
+func (h *helper) WithBindingUri(binding binding.BindingUri) *helper {
+	H.bindingUri = binding
+	return H
 }
 
-func WithBindingValidator(binding binding.StructValidator) func(*Helper) {
-	return func(e *Helper) {
-		e.bindingValidator = binding
-	}
+func (h *helper) WithBindingValidator(binding binding.StructValidator) *helper {
+	H.bindingValidator = binding
+	return H
 }
 
-func WithBindingErrorHandler(handler func(*gin.Context, error)) func(*Helper) {
-	return func(e *Helper) {
-		e.bindingErrorHandler = handler
-	}
+func (h *helper) WithBindingErrorHandler(handler func(*gin.Context, error)) *helper {
+	H.bindingErrorHandler = handler
+	return H
 }
 
-func WithErrorHandler(handler func(*gin.Context, error)) func(*Helper) {
-	return func(e *Helper) {
-		e.errorHandler = handler
-	}
+func (h *helper) WithErrorHandler(handler func(*gin.Context, error)) *helper {
+	H.errorHandler = handler
+	return H
 }
 
-func WithSuccessHandler(handler func(*gin.Context, any)) func(*Helper) {
-	return func(e *Helper) {
-		e.successHandler = handler
-	}
+func (h *helper) WithSuccessHandler(handler func(*gin.Context, any)) *helper {
+	H.successHandler = handler
+	return H
 }
 
-func (e *Helper) GET(router gin.IRoutes, path string, handler any) gin.IRoutes {
+func (e *helper) GET(router gin.IRoutes, path string, handler any) gin.IRoutes {
 	return e.handle(router, http.MethodGet, path, handler)
 }
 
-func (e *Helper) POST(router gin.IRoutes, path string, handler any) gin.IRoutes {
+func (e *helper) POST(router gin.IRoutes, path string, handler any) gin.IRoutes {
 	return e.handle(router, http.MethodPost, path, handler)
 }
 
-func (e *Helper) handle(router gin.IRoutes, method string, path string, handler any) gin.IRoutes {
+func (e *helper) handle(router gin.IRoutes, method string, path string, handler any) gin.IRoutes {
 	checkHandler(handler)
 	v := reflect.ValueOf(handler)
 	t := v.Type()

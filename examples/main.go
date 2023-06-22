@@ -28,17 +28,13 @@ type CreateResponse struct {
 
 func main() {
 	app := gin.Default()
-	gu := ginhelper.New(
-		ginhelper.WithBindingErrorHandler(func(c *gin.Context, err error) {
-			c.JSON(http.StatusOK, NewResponse(ResponseCodeBadRequest, err))
-		}),
-		ginhelper.WithErrorHandler(func(c *gin.Context, err error) {
-			c.Error(err)
-		}),
-		ginhelper.WithSuccessHandler(func(c *gin.Context, resp any) {
-			c.JSON(http.StatusOK, NewResponse(ResponseCodeSuccess, resp))
-		}),
-	)
+	ginhelper.H.WithBindingErrorHandler(func(c *gin.Context, err error) {
+		c.JSON(http.StatusOK, NewResponse(ResponseCodeBadRequest, err))
+	}).WithErrorHandler(func(c *gin.Context, err error) {
+		c.Error(err)
+	}).WithSuccessHandler(func(c *gin.Context, resp any) {
+		c.JSON(http.StatusOK, NewResponse(ResponseCodeSuccess, resp))
+	})
 
 	app.Use(func(c *gin.Context) {
 		c.Next()
@@ -47,12 +43,12 @@ func main() {
 		}
 	})
 
-	gu.GET(app, "/echo/:id", func(c *gin.Context, req *EchoRequest) error {
+	ginhelper.H.GET(app, "/echo/:id", func(c *gin.Context, req *EchoRequest) error {
 		fmt.Printf("%+v\n", req)
 		return fmt.Errorf("what is the problem? 42 is the answer")
 	})
 
-	gu.POST(app, "/create", func(c *gin.Context, req *CreateRequest) (*CreateResponse, error) {
+	ginhelper.H.POST(app, "/create", func(c *gin.Context, req *CreateRequest) (*CreateResponse, error) {
 		fmt.Printf("%+v\n", req)
 		resp := &CreateResponse{
 			ID: "1234",
