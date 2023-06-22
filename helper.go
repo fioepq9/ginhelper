@@ -109,7 +109,7 @@ func (e *Helper) handle(router gin.IRoutes, method string, path string, handler 
 		if t.NumIn() == 2 {
 			hasTags := make(map[string]bool)
 			hasUriTag := false
-			reqV := reflect.New(t.In(1))
+			reqV := reflect.New(t.In(1).Elem())
 			reqT := reqV.Elem().Type()
 			for i := 0; i < reqT.NumField(); i++ {
 				for tag := range e.bindings {
@@ -146,7 +146,7 @@ func (e *Helper) handle(router gin.IRoutes, method string, path string, handler 
 			if err != nil {
 				return nil, err
 			}
-			in = append(in, reqV.Elem())
+			in = append(in, reqV)
 		}
 		return in, nil
 	}

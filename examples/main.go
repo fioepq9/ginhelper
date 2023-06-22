@@ -47,12 +47,12 @@ func main() {
 		}
 	})
 
-	gu.GET(app, "/echo/:id", func(c *gin.Context, req EchoRequest) error {
+	gu.GET(app, "/echo/:id", func(c *gin.Context, req *EchoRequest) error {
 		fmt.Printf("%+v\n", req)
 		return fmt.Errorf("what is the problem? 42 is the answer")
 	})
 
-	gu.POST(app, "/create", func(c *gin.Context, req CreateRequest) (*CreateResponse, error) {
+	gu.POST(app, "/create", func(c *gin.Context, req *CreateRequest) (*CreateResponse, error) {
 		fmt.Printf("%+v\n", req)
 		resp := &CreateResponse{
 			ID: "1234",

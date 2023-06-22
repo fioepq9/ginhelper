@@ -31,8 +31,9 @@ func checkHandler(handler any) {
 	if t.In(0) != reflect.TypeOf(&gin.Context{}) {
 		panic("handler's first argument must be *gin.Context")
 	}
-	if t.NumIn() == 2 && t.In(1).Kind() != reflect.Struct {
-		panic("handler's second argument must be a struct")
+	if t.NumIn() == 2 &&
+		(t.In(1).Kind() != reflect.Ptr || t.In(1).Elem().Kind() != reflect.Struct) {
+		panic("handler's second argument must be a struct pointer")
 	}
 
 	if t.NumOut() == 0 || t.NumOut() > 2 {
