@@ -67,7 +67,11 @@ func (v *Validator) Engine() any {
 }
 
 func main() {
-	app := gin.Default()
+	gin.SetMode(gin.ReleaseMode)
+
+	app := gin.New()
+	app.Use(gin.Recovery())
+
 	ginhelper.H.WithBindingErrorHandler(func(c *gin.Context, err error) {
 		c.JSON(http.StatusOK, NewResponse(ResponseCodeBadRequest, err.Error()))
 	}).WithErrorHandler(func(c *gin.Context, err error) {
@@ -79,13 +83,17 @@ func main() {
 	app.Use(func(c *gin.Context) {
 		c.Next()
 		if err := c.Errors.Last(); err != nil {
-			c.JSON(200, NewResponse(ResponseCodeInternalError, err))
+			if r := new(Response); eris.As(err, r) || eris.As(err, &r) {
+				c.JSON(http.StatusOK, r)
+			} else {
+				c.JSON(200, NewResponse(ResponseCodeInternalError, err.JSON()))
+			}
 		}
 	})
 
 	ginhelper.H.GET(app, "/echo/:id", func(c *gin.Context, req *EchoRequest) error {
 		fmt.Printf("%+v\n", req)
-		return fmt.Errorf("what is the problem? 42 is the answer")
+		return NewResponse(ResponseCodeNotFound, "not found id")
 	})
 
 	ginhelper.H.POST(app, "/create", func(c *gin.Context, req *CreateRequest) (*CreateResponse, error) {

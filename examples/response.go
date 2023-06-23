@@ -1,5 +1,9 @@
 package main
 
+import (
+	"encoding/json"
+)
+
 type ResponseCode int
 
 const (
@@ -48,4 +52,9 @@ func NewResponse(code ResponseCode, data any) Response {
 		Message: code.String(),
 		Data:    data,
 	}
+}
+
+func (r Response) Error() string {
+	buf, _ := json.Marshal(r)
+	return string(buf)
 }
