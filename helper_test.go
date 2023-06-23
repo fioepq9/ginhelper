@@ -23,7 +23,7 @@ type TestGETRequest struct {
 
 func TestGET(t *testing.T) {
 	r := gin.New()
-	H.GET(r, "/test/:name", func(c *gin.Context, req *TestGETRequest) error {
+	H.Router(r).GET("/test/:name", func(c *gin.Context, req *TestGETRequest) error {
 		assert.Equal(t, "foo", req.Name)
 		assert.Equal(t, 42, req.Age)
 		assert.Equal(t, "1234", req.Token)
@@ -41,7 +41,7 @@ type TestPOSTRequest struct {
 
 func TestPOST(t *testing.T) {
 	r := gin.New()
-	H.POST(r, "/test", func(c *gin.Context, req *TestPOSTRequest) error {
+	H.Router(r).POST("/test", func(c *gin.Context, req *TestPOSTRequest) error {
 		assert.Equal(t, "foo", req.Username)
 		assert.Equal(t, "bar", req.Password)
 		return nil

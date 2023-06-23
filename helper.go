@@ -2,7 +2,6 @@ package ginhelper
 
 import (
 	"net/http"
-	"reflect"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
@@ -82,89 +81,9 @@ func (h *helper) WithSuccessHandler(handler func(*gin.Context, any)) *helper {
 	return H
 }
 
-func (e *helper) GET(router gin.IRoutes, path string, handler any) gin.IRoutes {
-	return e.handle(router, http.MethodGet, path, handler)
-}
-
-func (e *helper) POST(router gin.IRoutes, path string, handler any) gin.IRoutes {
-	return e.handle(router, http.MethodPost, path, handler)
-}
-
-func (e *helper) handle(router gin.IRoutes, method string, path string, handler any) gin.IRoutes {
-	checkHandler(handler)
-	v := reflect.ValueOf(handler)
-	t := v.Type()
-
-	request := func(c *gin.Context) ([]reflect.Value, error) {
-		in := make([]reflect.Value, 0, t.NumIn())
-		in = append(in, reflect.ValueOf(c))
-		if t.NumIn() == 2 {
-			hasTags := make(map[string]bool)
-			hasUriTag := false
-			reqV := reflect.New(t.In(1).Elem())
-			reqT := reqV.Elem().Type()
-			for i := 0; i < reqT.NumField(); i++ {
-				for tag := range e.bindings {
-					if hasTags[tag] {
-						continue
-					}
-					if _, ok := reqT.Field(i).Tag.Lookup(tag); ok {
-						hasTags[tag] = true
-					}
-				}
-				if _, ok := reqT.Field(i).Tag.Lookup("uri"); ok {
-					hasUriTag = true
-				}
-			}
-			// bind uri
-			if hasUriTag {
-				m := make(map[string][]string)
-				for _, v := range c.Params {
-					m[v.Key] = []string{v.Value}
-				}
-				err := e.bindingUri.BindUri(m, reqV.Interface())
-				if err != nil {
-					return nil, err
-				}
-			}
-			// bind other tags
-			for tag := range hasTags {
-				err := c.ShouldBindWith(reqV.Interface(), e.bindings[tag])
-				if err != nil {
-					return nil, err
-				}
-			}
-			err := e.bindingValidator.ValidateStruct(reqV.Elem().Interface())
-			if err != nil {
-				return nil, err
-			}
-			in = append(in, reqV)
-		}
-		return in, nil
+func (h *helper) Router(routes gin.IRoutes) *router {
+	return &router{
+		helper: h,
+		routes: routes,
 	}
-
-	return router.Handle(method, path, func(c *gin.Context) {
-		in, err := request(c)
-		if err != nil {
-			e.bindingErrorHandler(c, err)
-			return
-		}
-		out := v.Call(in)
-		var resp any
-		if len(out) == 1 {
-			if errVal := out[0].Interface(); errVal != nil {
-				err = errVal.(error)
-			}
-		} else {
-			resp = out[0].Interface()
-			if errVal := out[1].Interface(); errVal != nil {
-				err = errVal.(error)
-			}
-		}
-		if err != nil {
-			e.errorHandler(c, err)
-			return
-		}
-		e.successHandler(c, resp)
-	})
 }

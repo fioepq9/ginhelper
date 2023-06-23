@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/fioepq9/ginhelper"
 	"github.com/gin-gonic/gin"
@@ -11,6 +12,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	zh_translations "github.com/go-playground/validator/v10/translations/zh"
 	"github.com/rotisserie/eris"
+	"github.com/rs/zerolog"
 	"go.uber.org/multierr"
 )
 
@@ -19,6 +21,11 @@ type EchoRequest struct {
 	ID      int    `uri:"id" binding:"required"`
 	Message string `form:"message" binding:"required"`
 	Token   string `header:"token" binding:"required"`
+}
+
+func EchoController(c *gin.Context, req *EchoRequest) error {
+	fmt.Printf("%+v\n", req)
+	return NewResponse(ResponseCodeNotFound, "not found id")
 }
 
 // success: http localhost:8080/create username=foo@bar.com password=qwer
@@ -30,6 +37,14 @@ type CreateRequest struct {
 
 type CreateResponse struct {
 	ID string `json:"id"`
+}
+
+func CreateController(c *gin.Context, req *CreateRequest) (*CreateResponse, error) {
+	fmt.Printf("%+v\n", req)
+	resp := &CreateResponse{
+		ID: "1234",
+	}
+	return resp, nil
 }
 
 type Validator struct {
@@ -67,10 +82,14 @@ func (v *Validator) Engine() any {
 }
 
 func main() {
-	gin.SetMode(gin.ReleaseMode)
+	w := zerolog.NewConsoleWriter(func(w *zerolog.ConsoleWriter) {
+		w.TimeFormat = time.DateTime
+	})
+	log := zerolog.New(w).With().Timestamp().Logger()
 
-	app := gin.New()
-	app.Use(gin.Recovery())
+	ginhelper.
+		NewZerologWriter(log, zerolog.InfoLevel).
+		SetAll()
 
 	ginhelper.H.WithBindingErrorHandler(func(c *gin.Context, err error) {
 		c.JSON(http.StatusOK, NewResponse(ResponseCodeBadRequest, err.Error()))
@@ -79,6 +98,9 @@ func main() {
 	}).WithSuccessHandler(func(c *gin.Context, resp any) {
 		c.JSON(http.StatusOK, NewResponse(ResponseCodeSuccess, resp))
 	}).WithBindingValidator(NewValidator())
+
+	app := gin.New()
+	app.Use(gin.Recovery())
 
 	app.Use(func(c *gin.Context) {
 		c.Next()
@@ -91,18 +113,12 @@ func main() {
 		}
 	})
 
-	ginhelper.H.GET(app, "/echo/:id", func(c *gin.Context, req *EchoRequest) error {
-		fmt.Printf("%+v\n", req)
-		return NewResponse(ResponseCodeNotFound, "not found id")
-	})
+	v1g := app.Group("v1")
 
-	ginhelper.H.POST(app, "/create", func(c *gin.Context, req *CreateRequest) (*CreateResponse, error) {
-		fmt.Printf("%+v\n", req)
-		resp := &CreateResponse{
-			ID: "1234",
-		}
-		return resp, nil
-	})
+	ginhelper.H.Router(v1g).
+		GET("/echo/:id", EchoController).
+		POST("/create", CreateController)
+
 	if err := app.Run(); err != nil {
 		panic(err)
 	}
